@@ -11,102 +11,122 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.brickerp.procurement.entity.SupplierPriceHistory;
+import com.brickerp.procurement.repository.SupplierPriceHistoryRepository;
+
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class ProcurementController {
 
-    private final ProcurementService procurementService;
+        private final ProcurementService procurementService;
+        private final SupplierPriceHistoryRepository priceHistoryRepository;
 
-    // ==================== SUPPLIER ====================
+        // ==================== SUPPLIER ====================
 
-    @PostMapping("/suppliers")
-    public ResponseEntity<ApiResponse<SupplierResponse>> createSupplier(
-            @Valid @RequestBody SupplierRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Supplier created successfully",
-                        procurementService.createSupplier(request)));
-    }
+        @PostMapping("/suppliers")
+        public ResponseEntity<ApiResponse<SupplierResponse>> createSupplier(
+                        @Valid @RequestBody SupplierRequest request) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Supplier created successfully",
+                                                procurementService.createSupplier(request)));
+        }
 
-    @PutMapping("/suppliers/{id}")
-    public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(
-            @PathVariable Long id, @Valid @RequestBody SupplierRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Supplier updated successfully",
-                procurementService.updateSupplier(id, request)));
-    }
+        @PutMapping("/suppliers/{id}")
+        public ResponseEntity<ApiResponse<SupplierResponse>> updateSupplier(
+                        @PathVariable Long id, @Valid @RequestBody SupplierRequest request) {
+                return ResponseEntity.ok(ApiResponse.success("Supplier updated successfully",
+                                procurementService.updateSupplier(id, request)));
+        }
 
-    @GetMapping("/suppliers/{id}")
-    public ResponseEntity<ApiResponse<SupplierResponse>> getSupplier(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(procurementService.getSupplierById(id)));
-    }
+        @GetMapping("/suppliers/{id}")
+        public ResponseEntity<ApiResponse<SupplierResponse>> getSupplier(@PathVariable Long id) {
+                return ResponseEntity.ok(ApiResponse.success(procurementService.getSupplierById(id)));
+        }
 
-    @GetMapping("/suppliers")
-    public ResponseEntity<ApiResponse<List<SupplierResponse>>> getAllSuppliers() {
-        return ResponseEntity.ok(ApiResponse.success(procurementService.getAllSuppliers()));
-    }
+        @GetMapping("/suppliers")
+        public ResponseEntity<ApiResponse<List<SupplierResponse>>> getAllSuppliers() {
+                return ResponseEntity.ok(ApiResponse.success(procurementService.getAllSuppliers()));
+        }
 
-    @DeleteMapping("/suppliers/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteSupplier(@PathVariable Long id) {
-        procurementService.deleteSupplier(id);
-        return ResponseEntity.ok(ApiResponse.success("Supplier deleted successfully", null));
-    }
+        @DeleteMapping("/suppliers/{id}")
+        public ResponseEntity<ApiResponse<Void>> deleteSupplier(@PathVariable Long id) {
+                procurementService.deleteSupplier(id);
+                return ResponseEntity.ok(ApiResponse.success("Supplier deleted successfully", null));
+        }
 
-    // ==================== PURCHASE ORDERS ====================
+        // ==================== PURCHASE ORDERS ====================
 
-    @PostMapping("/purchase-orders")
-    public ResponseEntity<ApiResponse<PurchaseOrderResponse>> createPurchaseOrder(
-            @Valid @RequestBody PurchaseOrderRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Purchase order created successfully",
-                        procurementService.createPurchaseOrder(request)));
-    }
+        @PostMapping("/purchase-orders")
+        public ResponseEntity<ApiResponse<PurchaseOrderResponse>> createPurchaseOrder(
+                        @Valid @RequestBody PurchaseOrderRequest request) {
+                return ResponseEntity.status(HttpStatus.CREATED)
+                                .body(ApiResponse.success("Purchase order created successfully",
+                                                procurementService.createPurchaseOrder(request)));
+        }
 
-    @GetMapping("/purchase-orders/{id}")
-    public ResponseEntity<ApiResponse<PurchaseOrderResponse>> getPurchaseOrder(
-            @PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(
-                procurementService.getPurchaseOrderById(id)));
-    }
+        @GetMapping("/purchase-orders/{id}")
+        public ResponseEntity<ApiResponse<PurchaseOrderResponse>> getPurchaseOrder(
+                        @PathVariable Long id) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                procurementService.getPurchaseOrderById(id)));
+        }
 
-    @GetMapping("/purchase-orders")
-    public ResponseEntity<ApiResponse<List<PurchaseOrderResponse>>> getAllPurchaseOrders() {
-        return ResponseEntity.ok(ApiResponse.success(procurementService.getAllPurchaseOrders()));
-    }
+        @GetMapping("/purchase-orders")
+        public ResponseEntity<ApiResponse<List<PurchaseOrderResponse>>> getAllPurchaseOrders() {
+                return ResponseEntity.ok(ApiResponse.success(procurementService.getAllPurchaseOrders()));
+        }
 
-    @GetMapping("/purchase-orders/supplier/{supplierId}")
-    public ResponseEntity<ApiResponse<List<PurchaseOrderResponse>>> getBySupplier(
-            @PathVariable Long supplierId) {
-        return ResponseEntity.ok(ApiResponse.success(
-                procurementService.getPurchaseOrdersBySupplier(supplierId)));
-    }
+        @GetMapping("/purchase-orders/supplier/{supplierId}")
+        public ResponseEntity<ApiResponse<List<PurchaseOrderResponse>>> getBySupplier(
+                        @PathVariable Long supplierId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                procurementService.getPurchaseOrdersBySupplier(supplierId)));
+        }
 
-    @GetMapping("/purchase-orders/status/{status}")
-    public ResponseEntity<ApiResponse<List<PurchaseOrderResponse>>> getByStatus(
-            @PathVariable String status) {
-        return ResponseEntity.ok(ApiResponse.success(
-                procurementService.getPurchaseOrdersByStatus(status)));
-    }
+        @GetMapping("/purchase-orders/status/{status}")
+        public ResponseEntity<ApiResponse<List<PurchaseOrderResponse>>> getByStatus(
+                        @PathVariable String status) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                procurementService.getPurchaseOrdersByStatus(status)));
+        }
 
-    @PostMapping("/purchase-orders/{id}/send")
-    public ResponseEntity<ApiResponse<PurchaseOrderResponse>> sendToSupplier(
-            @PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success("Purchase order sent to supplier",
-                procurementService.sendToSupplier(id)));
-    }
+        @PostMapping("/purchase-orders/{id}/send")
+        public ResponseEntity<ApiResponse<PurchaseOrderResponse>> sendToSupplier(
+                        @PathVariable Long id) {
+                return ResponseEntity.ok(ApiResponse.success("Purchase order sent to supplier",
+                                procurementService.sendToSupplier(id)));
+        }
 
-    @PostMapping("/purchase-orders/{id}/receive")
-    public ResponseEntity<ApiResponse<PurchaseOrderResponse>> receiveItems(
-            @PathVariable Long id,
-            @Valid @RequestBody ReceiveItemsRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Items received successfully",
-                procurementService.receiveItems(id, request)));
-    }
+        @PostMapping("/purchase-orders/{id}/receive")
+        public ResponseEntity<ApiResponse<PurchaseOrderResponse>> receiveItems(
+                        @PathVariable Long id,
+                        @Valid @RequestBody ReceiveItemsRequest request) {
+                return ResponseEntity.ok(ApiResponse.success("Items received successfully",
+                                procurementService.receiveItems(id, request)));
+        }
 
-    @PostMapping("/purchase-orders/{id}/cancel")
-    public ResponseEntity<ApiResponse<PurchaseOrderResponse>> cancelPurchaseOrder(
-            @PathVariable Long id,
-            @RequestParam(required = false) String reason) {
-        return ResponseEntity.ok(ApiResponse.success("Purchase order cancelled",
-                procurementService.cancelPurchaseOrder(id, reason)));
-    }
+        @PostMapping("/purchase-orders/{id}/cancel")
+        public ResponseEntity<ApiResponse<PurchaseOrderResponse>> cancelPurchaseOrder(
+                        @PathVariable Long id,
+                        @RequestParam(required = false) String reason) {
+                return ResponseEntity.ok(ApiResponse.success("Purchase order cancelled",
+                                procurementService.cancelPurchaseOrder(id, reason)));
+        }
+
+        @GetMapping("/suppliers/{supplierId}/price-history")
+        public ResponseEntity<ApiResponse<List<SupplierPriceHistory>>> getSupplierPriceHistory(
+                        @PathVariable Long supplierId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                priceHistoryRepository.findBySupplierIdOrderByEffectiveDateDesc(supplierId)));
+        }
+
+        @GetMapping("/suppliers/{supplierId}/price-history/product/{productId}")
+        public ResponseEntity<ApiResponse<List<SupplierPriceHistory>>> getPriceHistoryByProduct(
+                        @PathVariable Long supplierId,
+                        @PathVariable Long productId) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                priceHistoryRepository.findBySupplierIdAndProductIdOrderByEffectiveDateDesc(
+                                                supplierId, productId)));
+        }
 }

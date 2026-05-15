@@ -17,6 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.brickerp.finance.entity.Invoice;
+import com.brickerp.finance.entity.Payment;
+import com.brickerp.finance.repository.InvoiceRepository;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -24,6 +31,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final CustomerAddressRepository addressRepository;
+    private final InvoiceRepository invoiceRepository;
 
     @Override
     public CustomerResponse create(CustomerRequest request) {
@@ -233,5 +241,74 @@ public class CustomerServiceImpl implements CustomerService {
         r.setContactName(a.getContactName());
         r.setContactPhone(a.getContactPhone());
         return r;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerLedgerResponse getCustomerLedger(Long customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", customerId));
+
+        List<Invoice> invoices = invoiceRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+
+        List<LedgerEntryResponse> entries = new ArrayList<>();
+        BigDecimal balance = BigDecimal.ZERO;
+        BigDecimal totalInvoiced = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+
+        // Collect all entries (invoices + payments) sorted by date
+        for (Invoice invoice : invoices) {
+            if (invoice.getStatus() == Invoice.InvoiceStatus.CANCELLED)
+                continue;
+
+            // Invoice entry — debit
+            totalInvoiced = totalInvoiced.add(invoice.getTotalAmount());
+            balance = balance.add(invoice.getTotalAmount());
+
+            entries.add(LedgerEntryResponse.builder()
+                    .date(invoice.getInvoiceDate().toString())
+                    .type("INVOICE")
+                    .referenceNumber(invoice.getInvoiceNumber())
+                    .description("Invoice for order: " +
+                            (invoice.getSalesOrder() != null
+                                    ? invoice.getSalesOrder().getOrderNumber()
+                                    : "—"))
+                    .debit(invoice.getTotalAmount())
+                    .credit(BigDecimal.ZERO)
+                    .balance(balance)
+                    .build());
+
+            // Payment entries — credit
+            for (Payment payment : invoice.getPayments()) {
+                totalPaid = totalPaid.add(payment.getAmount());
+                balance = balance.subtract(payment.getAmount());
+
+                entries.add(LedgerEntryResponse.builder()
+                        .date(payment.getPaymentDate().toString())
+                        .type("PAYMENT")
+                        .referenceNumber(payment.getPaymentNumber())
+                        .description("Payment via " + payment.getPaymentMethod().name()
+                                + (payment.getReferenceNumber() != null
+                                        ? " | Ref: " + payment.getReferenceNumber()
+                                        : ""))
+                        .debit(BigDecimal.ZERO)
+                        .credit(payment.getAmount())
+                        .balance(balance)
+                        .build());
+            }
+        }
+
+        // Sort by date
+        entries.sort(Comparator.comparing(LedgerEntryResponse::getDate));
+
+        return CustomerLedgerResponse.builder()
+                .customerId(customer.getId())
+                .customerName(customer.getName())
+                .customerCode(customer.getCustomerCode())
+                .totalInvoiced(totalInvoiced)
+                .totalPaid(totalPaid)
+                .totalOutstanding(totalInvoiced.subtract(totalPaid))
+                .entries(entries)
+                .build();
     }
 }

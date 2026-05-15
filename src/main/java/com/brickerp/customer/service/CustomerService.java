@@ -25,4 +25,6 @@ public interface CustomerService {
     CustomerResponse updateAddress(Long customerId, Long addressId, CustomerAddressRequest request);
 
     void deleteAddress(Long customerId, Long addressId);
+
+    CustomerLedgerResponse getCustomerLedger(Long customerId);
 }

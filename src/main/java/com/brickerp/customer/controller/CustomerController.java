@@ -88,4 +88,9 @@ public class CustomerController {
         customerService.deleteAddress(customerId, addressId);
         return ResponseEntity.ok(ApiResponse.success("Address deleted successfully", null));
     }
+
+    @GetMapping("/{id}/ledger")
+    public ResponseEntity<ApiResponse<CustomerLedgerResponse>> getLedger(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(customerService.getCustomerLedger(id)));
+    }
 }

@@ -25,6 +25,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.brickerp.procurement.entity.SupplierPriceHistory;
+import com.brickerp.procurement.repository.SupplierPriceHistoryRepository;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -36,6 +39,7 @@ public class ProcurementServiceImpl implements ProcurementService {
     private final ProductRepository productRepository;
     private final WarehouseRepository warehouseRepository;
     private final InventoryService inventoryService;
+    private final SupplierPriceHistoryRepository priceHistoryRepository;
 
     // ==================== SUPPLIER ====================
 
@@ -168,7 +172,19 @@ public class ProcurementServiceImpl implements ProcurementService {
         po.setTaxAmount(totalTax);
         po.setTotalAmount(subtotal.add(totalTax));
 
-        return toPurchaseOrderResponse(poRepository.save(po));
+        // Auto record price history for each item
+        PurchaseOrder savedPo = poRepository.save(po);
+        for (PurchaseOrderItem item : savedPo.getItems()) {
+            SupplierPriceHistory history = SupplierPriceHistory.builder()
+                    .supplier(supplier)
+                    .product(item.getProduct())
+                    .unitPrice(item.getUnitPrice())
+                    .effectiveDate(LocalDate.now())
+                    .poNumber(savedPo.getPoNumber())
+                    .build();
+            priceHistoryRepository.save(history);
+        }
+        return toPurchaseOrderResponse(savedPo);
     }
 
     @Override
