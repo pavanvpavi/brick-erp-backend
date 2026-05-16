@@ -1,18 +1,17 @@
 package com.brickerp.dashboard.controller;
 
+import com.brickerp.common.config.EmailService;
 import com.brickerp.common.response.ApiResponse;
 import com.brickerp.dashboard.dto.*;
 import com.brickerp.dashboard.service.DashboardService;
+import com.brickerp.inventory.entity.Stock;
+import com.brickerp.inventory.repository.StockRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-
-import com.brickerp.common.config.EmailService;
-import com.brickerp.inventory.repository.StockRepository;
-import com.brickerp.inventory.entity.Stock;
 import java.util.List;
 
 @RestController
@@ -21,7 +20,6 @@ import java.util.List;
 public class DashboardController {
 
     private final DashboardService dashboardService;
-
     private final EmailService emailService;
     private final StockRepository stockRepository;
 
@@ -60,30 +58,43 @@ public class DashboardController {
     @PostMapping("/test-email")
     public ResponseEntity<ApiResponse<String>> testEmail() {
         try {
+            String alertEmail = System.getenv("ALERT_EMAIL");
+            if (alertEmail == null || alertEmail.isEmpty()) {
+                alertEmail = System.getenv("MAIL_USERNAME");
+            }
             emailService.sendEmail(
-                    System.getenv("ALERT_EMAIL"),
+                    alertEmail,
                     "✅ Brick ERP - Email Test",
                     "Email alerts are working correctly!\n\nBrick ERP System");
-            return ResponseEntity.ok(ApiResponse.success("Test email sent successfully", "OK"));
+            return ResponseEntity.ok(
+                    ApiResponse.success("Test email sent to: " + alertEmail, "OK"));
         } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error("Email failed: " + e.getMessage()));
+            return ResponseEntity.ok(
+                    ApiResponse.error("Email failed: " + e.getMessage()));
         }
     }
 
     @PostMapping("/trigger-low-stock-check")
     public ResponseEntity<ApiResponse<String>> triggerLowStockCheck() {
-        List<Stock> lowStockItems = stockRepository.findLowStockItems();
-        if (lowStockItems.isEmpty()) {
-            return ResponseEntity.ok(ApiResponse.success("No low stock items found", "OK"));
+        try {
+            List<Stock> lowStockItems = stockRepository.findLowStockItems();
+            if (lowStockItems.isEmpty()) {
+                return ResponseEntity.ok(
+                        ApiResponse.success("No low stock items found", "OK"));
+            }
+            for (Stock stock : lowStockItems) {
+                emailService.sendLowStockAlert(
+                        stock.getProduct().getName(),
+                        stock.getWarehouse().getName(),
+                        stock.getQuantityOnHand(),
+                        stock.getProduct().getMinimumStockLevel());
+            }
+            return ResponseEntity.ok(
+                    ApiResponse.success("Low stock alerts sent for "
+                            + lowStockItems.size() + " items", "OK"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(
+                    ApiResponse.error("Failed: " + e.getMessage()));
         }
-        for (Stock stock : lowStockItems) {
-            emailService.sendLowStockAlert(
-                    stock.getProduct().getName(),
-                    stock.getWarehouse().getName(),
-                    stock.getQuantityOnHand(),
-                    stock.getProduct().getMinimumStockLevel());
-        }
-        return ResponseEntity.ok(ApiResponse.success(
-                "Low stock alerts sent for " + lowStockItems.size() + " items", "OK"));
     }
 }
