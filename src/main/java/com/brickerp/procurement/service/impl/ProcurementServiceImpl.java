@@ -172,19 +172,20 @@ public class ProcurementServiceImpl implements ProcurementService {
         po.setTaxAmount(totalTax);
         po.setTotalAmount(subtotal.add(totalTax));
 
-        // Auto record price history for each item
-        PurchaseOrder savedPo = poRepository.save(po);
-        for (PurchaseOrderItem item : savedPo.getItems()) {
+        // Auto record price history BEFORE saving
+        // Loop through original items list (not savedPo)
+        for (PurchaseOrderItem item : po.getItems()) {
             SupplierPriceHistory history = SupplierPriceHistory.builder()
                     .supplier(supplier)
                     .product(item.getProduct())
                     .unitPrice(item.getUnitPrice())
                     .effectiveDate(LocalDate.now())
-                    .poNumber(savedPo.getPoNumber())
+                    .poNumber(po.getPoNumber())
                     .build();
             priceHistoryRepository.save(history);
         }
-        return toPurchaseOrderResponse(savedPo);
+
+        return toPurchaseOrderResponse(poRepository.save(po));
     }
 
     @Override
