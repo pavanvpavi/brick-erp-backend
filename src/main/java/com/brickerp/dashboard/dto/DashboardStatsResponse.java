@@ -2,7 +2,9 @@ package com.brickerp.dashboard.dto;
 
 import lombok.Builder;
 import lombok.Data;
+
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -41,5 +43,33 @@ public class DashboardStatsResponse {
     private Long pendingDeliveries;
     private Long totalQualityTests;
     private Double averagePassRate;
-    private java.math.BigDecimal totalExpensesThisMonth;
+    private BigDecimal totalExpensesThisMonth;
+
+    private List<MonthlyRevenueData> monthlyRevenue;
+    private List<TopProductData> topProducts;
+    private List<StockLevelData> stockLevels;
+
+    @Data
+    @Builder
+    public static class MonthlyRevenueData {
+        private String month;
+        private Double revenue;
+        private Long orders;
+    }
+
+    @Data
+    @Builder
+    public static class TopProductData {
+        private String name;
+        private Long quantity;
+        private Double revenue;
+    }
+
+    @Data
+    @Builder
+    public static class StockLevelData {
+        private String product;
+        private Integer current;
+        private Integer minimum;
+    }
 }

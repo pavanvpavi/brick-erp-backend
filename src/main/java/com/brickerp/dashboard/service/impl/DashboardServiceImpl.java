@@ -28,6 +28,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.brickerp.dashboard.dto.DashboardStatsResponse.*;
+import com.brickerp.order.entity.SalesOrderItem;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -106,6 +109,84 @@ public class DashboardServiceImpl implements DashboardService {
                                                 && po.getStatus() != com.brickerp.procurement.entity.PurchaseOrder.PoStatus.CANCELLED)
                                 .count();
 
+                // Monthly Revenue (last 6 months)
+                LocalDate sixMonthsAgo = LocalDate.now().minusMonths(5).withDayOfMonth(1);
+                List<SalesOrder> recentOrders = salesOrderRepository
+                                .findByDateRange(sixMonthsAgo, LocalDate.now())
+                                .stream()
+                                .filter(o -> o.getStatus() != SalesOrder.OrderStatus.CANCELLED)
+                                .collect(Collectors.toList());
+
+                Map<String, Double> monthlyRevenueMap = new LinkedHashMap<>();
+                Map<String, Long> monthlyOrdersMap = new LinkedHashMap<>();
+
+                // Initialize all 6 months
+                for (int i = 5; i >= 0; i--) {
+                        String month = LocalDate.now().minusMonths(i)
+                                        .format(DateTimeFormatter.ofPattern("MMM yy"));
+                        monthlyRevenueMap.put(month, 0.0);
+                        monthlyOrdersMap.put(month, 0L);
+                }
+
+                for (SalesOrder order : recentOrders) {
+                        String month = order.getOrderDate()
+                                        .format(DateTimeFormatter.ofPattern("MMM yy"));
+                        monthlyRevenueMap.merge(month,
+                                        order.getTotalAmount().doubleValue(), Double::sum);
+                        monthlyOrdersMap.merge(month, 1L, Long::sum);
+                }
+
+                List<MonthlyRevenueData> monthlyRevenue = monthlyRevenueMap.entrySet()
+                                .stream()
+                                .map(e -> MonthlyRevenueData.builder()
+                                                .month(e.getKey())
+                                                .revenue(Math.round(e.getValue() * 100.0) / 100.0)
+                                                .orders(monthlyOrdersMap.getOrDefault(e.getKey(), 0L))
+                                                .build())
+                                .collect(Collectors.toList());
+
+                // Top 5 products by quantity sold
+                Map<Long, Long> productQtyMap = new HashMap<>();
+                Map<Long, Double> productRevenueMap = new HashMap<>();
+                Map<Long, String> productNameMap = new HashMap<>();
+
+                for (SalesOrder order : recentOrders) {
+                        for (SalesOrderItem item : order.getItems()) {
+                                Long pid = item.getProduct().getId();
+                                productQtyMap.merge(pid, (long) item.getQuantity(), Long::sum);
+                                productRevenueMap.merge(pid,
+                                                item.getLineTotal().doubleValue(), Double::sum);
+                                productNameMap.put(pid, item.getProduct().getName());
+                        }
+                }
+
+                List<TopProductData> topProducts = productQtyMap.entrySet().stream()
+                                .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
+                                .limit(5)
+                                .map(e -> TopProductData.builder()
+                                                .name(productNameMap.get(e.getKey()))
+                                                .quantity(e.getValue())
+                                                .revenue(Math.round(
+                                                                productRevenueMap.getOrDefault(e.getKey(), 0.0)
+                                                                                * 100.0)
+                                                                / 100.0)
+                                                .build())
+                                .collect(Collectors.toList());
+
+                // Stock levels (top 6 products)
+                List<StockLevelData> stockLevels = stockRepository.findLowStockItems()
+                                .stream()
+                                .limit(6)
+                                .map(s -> StockLevelData.builder()
+                                                .product(s.getProduct().getName()
+                                                                .length() > 15
+                                                                                ? s.getProduct().getName().substring(0,
+                                                                                                15) + "..."
+                                                                                : s.getProduct().getName())
+                                                .current(s.getQuantityOnHand())
+                                                .minimum(s.getProduct().getMinimumStockLevel())
+                                                .build())
+                                .collect(Collectors.toList());
                 return DashboardStatsResponse.builder()
                                 .totalOrders((long) allOrders.size())
                                 .pendingOrders(pendingOrders)
@@ -125,6 +206,9 @@ public class DashboardServiceImpl implements DashboardService {
                                 .completedProductionOrders(completedProduction)
                                 .totalCustomers(customerRepository.count())
                                 .activeCustomers((long) customerRepository.findByIsActiveTrue().size())
+                                .monthlyRevenue(monthlyRevenue)
+                                .topProducts(topProducts)
+                                .stockLevels(stockLevels)
                                 .build();
         }
 
