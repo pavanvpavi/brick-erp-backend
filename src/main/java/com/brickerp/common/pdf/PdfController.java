@@ -5,6 +5,8 @@ import com.brickerp.dispatch.entity.DeliveryOrder;
 import com.brickerp.dispatch.repository.DeliveryOrderRepository;
 import com.brickerp.finance.entity.Invoice;
 import com.brickerp.finance.repository.InvoiceRepository;
+import com.brickerp.inventory.entity.Warehouse;
+import com.brickerp.inventory.repository.WarehouseRepository;
 import com.brickerp.procurement.entity.PurchaseOrder;
 import com.brickerp.procurement.repository.PurchaseOrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/pdf")
@@ -24,6 +28,7 @@ public class PdfController {
     private final InvoiceRepository invoiceRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final DeliveryOrderRepository deliveryOrderRepository;
+    private final WarehouseRepository warehouseRepository;
 
     @GetMapping("/invoice/{id}")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable Long id) {
@@ -54,7 +59,13 @@ public class PdfController {
             PurchaseOrder po = purchaseOrderRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("PurchaseOrder", id));
 
-            byte[] pdf = pdfService.generatePurchaseOrderPdf(po);
+            String warehouseName = "—";
+            if (po.getWarehouseId() != null) {
+                Optional<Warehouse> wh = warehouseRepository.findById(po.getWarehouseId());
+                warehouseName = wh.map(Warehouse::getName).orElse("—");
+            }
+
+            byte[] pdf = pdfService.generatePurchaseOrderPdf(po, warehouseName);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION,
