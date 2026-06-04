@@ -1,7 +1,5 @@
 package com.brickerp.common.config;
 
-import java.util.List;
-
 import com.brickerp.auth.security.JwtAuthFilter;
 import com.brickerp.auth.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +19,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -52,7 +52,6 @@ public class SecurityConfig {
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
                 http
                                 .csrf(csrf -> csrf.disable())
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -60,8 +59,10 @@ public class SecurityConfig {
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
-                                                                "/api/v1/auth/**",
-                                                                "/actuator/**")
+                                                                "/api/v1/auth/login",
+                                                                "/api/v1/auth/register",
+                                                                "/actuator/**",
+                                                                "/actuator/health")
                                                 .permitAll()
                                                 .anyRequest()
                                                 .authenticated())
@@ -74,7 +75,6 @@ public class SecurityConfig {
 
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
-
                 CorsConfiguration config = new CorsConfiguration();
 
                 config.setAllowedOriginPatterns(List.of(
@@ -83,20 +83,15 @@ public class SecurityConfig {
                                 "https://*.vercel.app"));
 
                 config.setAllowedMethods(List.of(
-                                "GET",
-                                "POST",
-                                "PUT",
-                                "DELETE",
-                                "OPTIONS"));
+                                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 
                 config.setAllowedHeaders(List.of("*"));
-
+                config.setExposedHeaders(List.of("Authorization"));
                 config.setAllowCredentials(true);
+                config.setMaxAge(3600L);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-
                 source.registerCorsConfiguration("/**", config);
-
                 return source;
         }
 }
